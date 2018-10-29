@@ -1,210 +1,143 @@
--- 1a.
-SELECT first_name, last_name
-FROM actor;
+use sakila;
 
---1b.
-SELECT UPPER(CONCAT(first_name,' ', last_name)) AS 'Actor Name'
-FROM actor;
+select first_name, last_name from actor;
 
---2a.
-SELECT first_name, last_name, actor_id 
-FROM actor
-where first_name = 'Joe';
+select upper(concat(first_name, ' ', last_name)) as 'Actor Name' from actor;
 
---2b.
-SELECT first_name, last_name, actor_id 
-FROM actor
-WHERE last_name LIKE '%Gen%';
+select actor_id, first_name, last_name from actor
+where first_name = "Joe";
 
---2c 
-SELECT first_name, last_name, actor_id 
-FROM actor
-WHERE last_name LIKE '%Li%' 
-ORDER BY last_name, first_name;
+select actor_id, first_name, last_name from actor
+where last_name like "%GEN%";
 
---2d
-SELECT country_id, country 
-FROM country
-WHERE country IN('Afghanistan','Bangladesh', 'China') 
+select actor_id, last_name, first_name from actor
+where last_name like "%LI%";
 
---3a
-ALTER TABLE actor 
-ADD COLUMN
-middle_name varchar(40) AFTER first_name;
+select country_id, country from country
+where country in ('Afghanistan', 'Bangladesh', 'China');
 
---3b
-SELECT * FROM actor;
+alter table actor
+add column middle_name varchar(25) after first_name;
 
-ALTER TABLE actor
-MODIFY middle_name BLOB NOT NULL;
+alter table actor
+drop column middle_name;
 
---3c
-ALTER TABLE actor 
-DROP middle_name;
+select last_name, count(*) as 'Number of Actors'
+from actor group by last_name having count(*) >=2;
 
-SELECT * FROM actor;
+update actor 
+set first_name = 'HARPO'
+where first_name = "Groucho" and last_name = "Williams";
 
---4a
-SELECT last_name, COUNT(*) as COUNT
-from actor;
+update actor
+set first_name = 'GROUCHO'
+where actor_id = 172;
 
---4b
-SELECT last_name, 
-COUNT(*) AS COUNT
-FROM actor
-HAVING COUNT >=2;
+describe sakila.address;
 
---4c
-UPDATE actor 
-SET first_name = 'HARPO'
-WHERE actor_id = 172;
+select first_name, last_name, address
+from staff s
+join address a
+on s.address_id = a.address_id;
 
---4d
-UPDATE actor 
-SET first_name = 'GROUCHO'
-WHERE actor_id = 172;
+select payment.staff_id, staff.first_name, staff.last_name, payment.amount, payment.payment_date
+from staff inner join payment on
+staff.staff_id = payment.staff_id and payment_date like '2005-08%';
 
---5a
-SELECT actor.first_name, actor.last_name, address.address, address.city_id,
-address.postal_code
-FROM actor
-JOIN address 
-ON actor.actor_id = address.address_id
-;
+select f.title as 'Film Title', count(fa.actor_id) as 'Number of Actors'
+from film_actor fa
+inner join film f on fa.film_id = f.film_id
+group by f.title;
 
---6a 
-SELECT first_name, last_name, address
-FROM staff 
-JOIN address 
-ON staff.address_id = address.address_id
-;
+select title, (
+select count(*) from inventory
+where film.film_id = inventory.film_id
+) as 'Number of Copies'
+from film
+where title = "Hunchback Impossible";
 
---6b
-SELECT staff.first_name, staff.last_name, payment.amount, payment.payment_date
-FROM staff 
-JOIN payment  
-ON staff.staff_id = payment.staff_id and payment_date like '2005-08%';
+select last_name, first_name, sum(amount) as 'Total Paid'
+from sakila.customer c, sakila.payment p
+where c.customer_id = p.customer_id
+group by last_name, first_name
+order by last_name, first_name;
 
---6c
-select film.title, film_actor.actor_id
-from film 
-inner join film_actor
-on film.film_id = film_actor.actor_id
-;
+select title
+from sakila.film f, sakila.language l
+where f.language_id = l.language_id and l.name like '%ENGLISH%' and (f.title like 'Q%' or f.title like 'K%')
+order by title asc;
 
---6d
-SELECT film.title
-FROM film 
-INNER JOIN inventory
-ON film.film_id = inventory.film_id AND film.title LIKE 'Hunchback Impossible';
-;
+select distinct concat(last_name,', ', first_name)
+from sakila.film f, sakila.film_actor fa, sakila.actor a
+where f.film_id = fa.film_id and fa.actor_id = a.actor_id and f.title like 'Alone Trip';
 
---6e
-SELECT customer.first_name,customer.last_name,payment.amount
-FROM customer 
-JOIN payment 
-ON customer.customer_id  = payment.customer_id
-ORDER BY customer.last_name
-;
+select cus.first_name, cus.last_name, cus.email 
+from customer cus
+join address a 
+on (cus.address_id = a.address_id)
+join city cty
+on (cty.city_id = a.city_id)
+join country
+on (country.country_id = cty.country_id)
+where country.country= 'Canada';
 
---7a 
-SELECT film.title
-FROM film 
-WHERE film.language_id IN (
-        SELECT language.language_id
-       FROM language 
-WHERE film.title like 'K%' OR film.title like 'Q%' AND language.name = "English"
-);
+select title, description 
+from film f, film_category fc, category c
+where c.category_id = fc.category_id and f.film_id = fc.film_id and c.category_id in (2, 3, 8);
 
---7b
-SELECT film_actor.actor_id
-from film_actor
-where film_actor.actor_id in (
-	SElECT film.film_id
-    FROM film
-    WHERE film.title = "Alone Trip");
+select f.title, count(rental_id) as 'Times Rented'
+from rental r
+join inventory i
+on (r.inventory_id = i.inventory_id)
+join film f
+on (i.film_id = f.film_id)
+group by f.title
+order by `Times Rented` desc;
 
---7c 
-SELECT customer.first_name, customer.Last_name, customer.email,country.country
-FROM customer 
-JOIN country
-on customer.customer_id = country.country_id
-WHERE country.country = "Canada"
-;
+select s.store_id, sum(amount) as 'Revenue'
+from payment p
+join rental r
+on (p.rental_id = r.rental_id)
+join inventory i
+on (i.inventory_id = r.inventory_id)
+join store s
+on (s.store_id = i.store_id)
+group by s.store_id;
 
---7d
-SELECT film.title, category.name
-FROM film
-JOIN category
-ON film.film_id = category.category_id
-WHERE category.name= "Family";
+select s.store_id, cty.city, country.country 
+from store s
+join address a 
+on (s.address_id = a.address_id)
+join city cty
+on (cty.city_id = a.city_id)
+join country
+on (country.country_id = cty.country_id);
 
---7e
-SELECT film.title, COUNT(rental_id) AS 'Times Rented'
-FROM rental 
-JOIN inventory 
-ON (rental.inventory_id = inventory.inventory_id)
-JOIN film 
-ON (inventory.film_id = film.film_id)
-GROUP BY film.title
-ORDER BY `Times Rented` DESC;
+select c.name as 'Genre', sum(p.amount) as 'Gross' 
+from category c
+join film_category fc 
+on (c.category_id=fc.category_id)
+join inventory i 
+on (fc.film_id=i.film_id)
+join rental r 
+on (i.inventory_id=r.inventory_id)
+join payment p 
+on (r.rental_id=p.rental_id)
+group by c.name order by Gross desc limit 5;
 
---7f 
-SELECT s.store_id, SUM(amount) AS 'Revenue'
-FROM payment p
-JOIN rental r
-ON (p.rental_id = r.rental_id)
-JOIN inventory i
-ON (i.inventory_id = r.inventory_id)
-JOIN store s
-ON (s.store_id = i.store_id)
-GROUP BY s.store_id; 
+create view genre_revenue as
+select c.name as 'Genre', sum(p.amount) as 'Gross' 
+from category c
+join film_category fc 
+on (c.category_id=fc.category_id)
+join inventory i 
+on (fc.film_id=i.film_id)
+join rental r 
+on (i.inventory_id=r.inventory_id)
+join payment p 
+on (r.rental_id=p.rental_id)
+group by c.name order by Gross desc limit 5;
 
---7g
-SELECT store.store_id, city.city, country.country 
-FROM store 
-JOIN address  
-ON (store.address_id = address.address_id)
-JOIN city 
-ON (city.city_id = address.city_id)
-JOIN country
-ON (country.country_id = city.country_id);
+select * from genre_revenue;
 
---7h
-SELECT category.name AS 'Genre', SUM(payment.amount) AS 'Gross' 
-FROM category 
-JOIN film_category 
-ON (category.category_id= film_category.category_id)
-JOIN inventory 
-ON (film_category.film_id=inventory.film_id)
-JOIN rental 
-ON (inventory.inventory_id=rental.inventory_id)
-JOIN payment 
-ON (rental.rental_id=payment.rental_id)
-GROUP BY category.name 
-ORDER BY Gross  
-LIMIT 5
-;
-
---8a 
-CREATE VIEW genre_revenue AS
-SELECT category.name AS 'Genre', SUM(payment.amount) AS 'Gross' 
-FROM category 
-JOIN film_category 
-ON (category.category_id=film_category.category_id)
-JOIN inventory 
-ON (film_category.film_id=inventory.film_id)
-JOIN rental  
-ON (inventory.inventory_id=rental.inventory_id)
-JOIN payment 
-ON (rental.rental_id=payment .rental_id)
-GROUP BY category.name 
-ORDER BY Gross  
-LIMIT 5
-;
-
---8b
-SELECT * FROM genre_revenue;
-
---8c
-DROP VIEW genre_revenue;
+drop view genre_revenue;
